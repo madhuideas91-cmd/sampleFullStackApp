@@ -14,8 +14,8 @@ RUN npm install -g serve
 # Copy application source
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application for dev mode
+RUN npm run build:dev
 
 # Expose port 3000
 EXPOSE 3000

@@ -33,10 +33,9 @@ yarn-error.log*
 *.sublime-workspace
 *.sublime-project
 
-# Environment variables (keep .env.example)
+# Environment variables (commit .env.dev, exclude others)
 .env
 .env.local
-.env.*.local
 
 # Docker
 mysql-data/
