@@ -6,6 +6,8 @@ services:
       context: ./eurekaRegistry
       dockerfile: Dockerfile
     container_name: eureka-registry
+    ports:
+      - "8761:8761"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
     networks:
