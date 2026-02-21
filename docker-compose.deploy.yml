@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  eureka-registry:
+    build:
+      context: ./eurekaRegistry
+      dockerfile: Dockerfile
+    container_name: eureka-registry
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    networks:
+      - fullstack-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  user-service:
+    build:
+      context: ./userService
+      dockerfile: Dockerfile
+    container_name: user-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DATABASE_URL=jdbc:mysql://mysql:3306/users_db
+      - DATABASE_USERNAME=root
+      - DATABASE_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-registry:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-registry:
+        condition: service_started
+    networks:
+      - fullstack-network
+    restart: unless-stopped
+
+  task-service:
+    build:
+      context: ./taskservice
+      dockerfile: Dockerfile
+    container_name: task-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DATABASE_URL=jdbc:mysql://mysql:3306/tasks_db
+      - DATABASE_USERNAME=root
+      - DATABASE_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-registry:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-registry:
+        condition: service_started
+    networks:
+      - fullstack-network
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: ./apiGateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-registry:8761/eureka/
+    depends_on:
+      - eureka-registry
+      - user-service
+      - task-service
+    networks:
+      - fullstack-network
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: client
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - api-gateway
+    networks:
+      - fullstack-network
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=users_db
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - fullstack-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  fullstack-network:
+    driver: bridge
+
+volumes:
+  mysql-data:

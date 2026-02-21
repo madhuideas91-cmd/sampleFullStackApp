@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: apiGateway
+  cloud:
+    gateway:
+      routes:
+        - id: user-service-route
+          uri: lb://USERSERVICE
+          predicates:
+            - Path=/users/**
+        - id: task-service-route
+          uri: lb://TASKSERVICE
+          predicates:
+            - Path=/tasks/**
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://dev-frontend.example.com"
+              - "https://dev-frontend.example.com"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+
+server:
+  port: 8080
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://dev-eureka-server:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+
+logging:
+  level:
+    root: WARN
+    org.springframework.cloud.gateway: INFO
